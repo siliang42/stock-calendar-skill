@@ -2,6 +2,12 @@
 
 本 Wiki 面向第一次使用本项目的人。你可以直接打开日历网页，也可以把项目作为 AI Skill 使用，或者在支持定时任务和文件上传的宿主平台中搭建自动更新流程。
 
+## 界面预览
+
+[![A 股热点事件日历界面预览：月历、农历节日、当日热点事件和 Excel 报告下载](https://raw.githubusercontent.com/wiki/siliang42/stock-calendar-skill/assets/a-share-hot-event-calendar-preview.png)](https://raw.githubusercontent.com/wiki/siliang42/stock-calendar-skill/assets/a-share-hot-event-calendar-preview.png)
+
+> 点击图片可查看大图。准备运行或研究项目时，从 [[快速开始|Quick-Start]] 开始。
+
 > 所有热点与事件分析仅为题材推演，不构成投资建议。行情、事件和下载链接必须来自可核验的真实来源。
 
 ## 项目能做什么
