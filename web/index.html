@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A股热点事件日历</title>
+<style>
+:root {
+  --red: #e74c3c; --orange: #e67e22; --blue: #3498db;
+  --bg: #f5f6fa; --card: #ffffff; --border: #e3e6ef; --text: #2c3e50; --muted: #95a5a6;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--bg); color:var(--text); min-height:100vh; }
+.wrap { max-width:980px; margin:0 auto; padding:24px 16px 60px; }
+header { text-align:center; margin-bottom:20px; }
+h1 { font-size:26px; letter-spacing:1px; }
+.sub { color:var(--muted); font-size:13px; margin-top:6px; }
+.toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.nav { display:flex; align-items:center; gap:10px; }
+.nav button { width:40px; height:40px; border:1px solid var(--border); border-radius:10px;
+  background:var(--card); font-size:18px; cursor:pointer; color:var(--text); }
+.nav button:hover { background:#eef1f7; }
+#monthTitle { font-size:20px; font-weight:600; min-width:150px; text-align:center; }
+#btnToday { padding:8px 16px; border:1px solid var(--blue); color:var(--blue); background:#fff;
+  border-radius:20px; cursor:pointer; font-size:13px; }
+#summary { font-size:13px; color:var(--muted); text-align:right; }
+#weekdayRow { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-bottom:6px; }
+#weekdayRow span { text-align:center; font-size:13px; color:var(--muted); font-weight:600; padding:6px 0; }
+#grid { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; }
+.day { background:var(--card); border:1px solid var(--border); border-radius:10px; min-height:92px;
+  padding:8px; cursor:pointer; position:relative; transition:box-shadow .15s; overflow:hidden; }
+.day:hover { box-shadow:0 4px 14px rgba(0,0,0,.10); }
+.day .num { font-size:16px; font-weight:600; }
+.day .lunar { font-size:11px; color:var(--muted); margin-top:2px; }
+.day .badges { position:absolute; top:8px; right:8px; display:flex; gap:3px; }
+.badge { font-size:10px; padding:1px 5px; border-radius:6px; color:#fff; }
+.badge.hot { background:var(--red); }
+.badge.holiday { background:var(--red); }
+.badge.workday { background:var(--orange); }
+.day .festival { font-size:11px; color:var(--red); margin-top:6px; font-weight:600; }
+.day .hot-title { font-size:10px; color:var(--blue); margin-top:4px; line-height:1.3;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.day.other-month { opacity:.35; }
+.day.today { border-color:var(--blue); box-shadow:0 0 0 2px rgba(52,152,219,.35); }
+.day.holiday-bg { background:#fff5f5; }
+.legend { display:flex; gap:16px; justify-content:center; margin:18px 0 8px; font-size:12px; color:var(--muted); flex-wrap:wrap; }
+.legend .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:4px; vertical-align:middle; }
+.disc { text-align:center; font-size:12px; color:var(--muted); margin-top:18px; line-height:1.7; }
+footer { text-align:center; font-size:12px; color:#b0b7c3; margin-top:10px; }
+/* 抽屉 */
+.overlay { position:fixed; inset:0; background:rgba(0,0,0,.4); opacity:0; pointer-events:none; transition:opacity .2s; z-index:99; }
+.overlay.show { opacity:1; pointer-events:auto; }
+.drawer { position:fixed; top:0; right:0; width:min(420px,92vw); height:100%; background:#fff;
+  box-shadow:-8px 0 30px rgba(0,0,0,.18); transform:translateX(100%); transition:transform .25s;
+  z-index:100; display:flex; flex-direction:column; }
+.drawer.show { transform:translateX(0); }
+.drawer-header { padding:18px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+.drawer-header h2 { font-size:17px; }
+#drawerClose { border:none; background:none; font-size:22px; cursor:pointer; color:var(--muted); }
+.drawer-body { padding:18px 20px; overflow-y:auto; flex:1; }
+.info-block { margin-bottom:18px; }
+.label { font-size:12px; color:var(--muted); margin-bottom:8px; font-weight:600; }
+.content { font-size:14px; line-height:1.9; }
+.chip { display:inline-block; background:#eef1f7; color:var(--text); font-size:12px;
+  padding:2px 8px; border-radius:12px; margin:2px 3px 2px 0; }
+.chip.est { background:#fef3e2; color:#b7791f; }
+.event-item { padding:8px 0; border-bottom:1px dashed var(--border); font-size:13px; line-height:1.6; }
+.idx { display:inline-block; width:18px; height:18px; border-radius:50%; background:var(--red);
+  color:#fff; text-align:center; font-size:11px; line-height:18px; margin-right:6px; }
+.download-btn { display:inline-block; margin-top:4px; padding:10px 18px; background:var(--blue);
+  color:#fff; border-radius:10px; text-decoration:none; font-size:14px; }
+.download-btn:hover { opacity:.9; }
+.placeholder { color:var(--muted); font-size:13px; padding:8px 0; }
+@media (max-width:640px) { .day { min-height:70px; } .day .lunar, .day .festival, .day .hot-title { font-size:9px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>📅 A股热点事件日历</h1>
+    <div class="sub">农历 · 节日 · 每日热点 · 未来重大事件 · Excel报告下载</div>
+  </header>
+  <div class="toolbar">
+    <div class="nav">
+      <button id="btnPrev">‹</button>
+      <span id="monthTitle"></span>
+      <button id="btnNext">›</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span id="summary" style="margin-right:6px;"></span>
+      <button id="btnToday">回到今天</button>
+    </div>
+  </div>
+  <div id="weekdayRow"></div>
+  <div id="grid"></div>
+  <div class="legend">
+    <span><span class="dot" style="background:var(--red)"></span>热点事件日</span>
+    <span><span class="dot" style="background:var(--red)"></span>法定假「休」</span>
+    <span><span class="dot" style="background:var(--orange)"></span>调休上班「班」</span>
+    <span><span class="dot" style="background:var(--blue)"></span>今天</span>
+  </div>
+  <div class="disc">本日历所有热点与事件分析仅为题材推演，不构成任何投资建议。股市有风险，入市需谨慎。</div>
+  <footer>© 2026 A股热点事件日历 · MIT License</footer>
+</div>
+
+<div class="overlay" id="overlay"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-header">
+    <h2 id="drawerTitle"></h2>
+    <button id="drawerClose">×</button>
+  </div>
+  <div class="drawer-body" id="drawerBody"></div>
+</div>
+
+<script>
+// ============================================================
+// lunar.js — 农历/节气/节日 纯算法（零依赖，覆盖 1900-2100）
+// 核心：基准日偏移法，以 1900-01-31（农历庚子年正月初一）为基准
+// ============================================================
+
+// 1900-2099 每年一个 16 位十六进制数：
+// 位结构: [闰月大小位:1][大小月:12位][闰月月份:4位]
+const LUNAR_INFO = [
+  0x04bd8, 0x04ae0, 0x0a570, 0x054d5, 0x0d260, 0x0d950, 0x16554, 0x056a0, 0x09ad0, 0x055d2,
+  0x04ae0, 0x0a5b6, 0x0a4d0, 0x0d250, 0x1d255, 0x0b540, 0x0d6a0, 0x0ada2, 0x095b0, 0x14977,
+  0x04970, 0x0a4b0, 0x0b4b5, 0x06a50, 0x06d40, 0x1ab54, 0x02b60, 0x09570, 0x052f2, 0x04970,
+  0x06566, 0x0d4a0, 0x0ea50, 0x06e95, 0x05ad0, 0x02b60, 0x186e3, 0x092e0, 0x1c8d7, 0x0c950,
+  0x0d4a0, 0x1d8a6, 0x0b550, 0x056a0, 0x1a5b4, 0x025d0, 0x092d0, 0x0d2b2, 0x0a950, 0x0b557,
+  0x06ca0, 0x0b550, 0x15355, 0x04da0, 0x0a5b0, 0x14573, 0x052b0, 0x0a9a8, 0x0e950, 0x06aa0,
+  0x0aea6, 0x0ab50, 0x04b60, 0x0aae4, 0x0a570, 0x05260, 0x0f263, 0x0d950, 0x05b57, 0x056a0,
+  0x096d0, 0x04dd5, 0x04ad0, 0x0a4d0, 0x0d4d4, 0x0d250, 0x0d558, 0x0b540, 0x0b5a0, 0x195a6,
+  0x095b0, 0x049b0, 0x0a974, 0x0a4b0, 0x0b27a, 0x06a50, 0x06d40, 0x0af46, 0x0ab60, 0x09570,
+  0x04af5, 0x04970, 0x064b0, 0x074a3, 0x0ea50, 0x06b58, 0x05ac0, 0x0ab60, 0x096d5, 0x092e0,
+  0x0c960, 0x0d954, 0x0d4a0, 0x0da50, 0x07552, 0x056a0, 0x0abb7, 0x025d0, 0x092d0, 0x0cab5,
+  0x0a950, 0x0b4a0, 0x0baa4, 0x0ad50, 0x055d9, 0x04ba0, 0x0a5b0, 0x15176, 0x052b0, 0x0a930,
+  0x07954, 0x06aa0, 0x0ad50, 0x05b52, 0x04b60, 0x0a6e6, 0x0a4e0, 0x0d260, 0x0ea65, 0x0d530,
+  0x05aa0, 0x076a3, 0x096d0, 0x04afb, 0x04ad0, 0x0a4d0, 0x1d0b6, 0x0d250, 0x0d520, 0x0dd45,
+  0x0b5a0, 0x056d0, 0x055b2, 0x049b0, 0x0a577, 0x0a4b0, 0x0aa50, 0x1b255, 0x06d20, 0x0ada0,
+  0x14b63, 0x09370, 0x049f8, 0x04970, 0x064b0, 0x168a6, 0x0ea50, 0x06b20, 0x1a6c4, 0x0aae0,
+  0x092e0, 0x0d2e3, 0x0c960, 0x0d557, 0x0d4a0, 0x0da50, 0x05d55, 0x056a0, 0x0a6d0, 0x055d4,
+  0x052d0, 0x0a9b8, 0x0a950, 0x0b4a0, 0x0b6a6, 0x0ad50, 0x055a0, 0x0aba4, 0x0a5b0, 0x052b0,
+  0x0b273, 0x06930, 0x07337, 0x06aa0, 0x0ad50, 0x14b55, 0x04b60, 0x0a570, 0x054e4, 0x0d160,
+  0x0e968, 0x0d520, 0x0daa0, 0x16aa6, 0x056d0, 0x04ae0, 0x0a9d4, 0x0a2d0, 0x0d150, 0x0f252,
+  0x0d520
+];
+
+const TIAN_GAN = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
+const DI_ZHI = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
+const ZODIAC = ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪'];
+const MONTH_CN = ['正', '二', '三', '四', '五', '六', '七', '八', '九', '十', '冬', '腊'];
+const DAY_CN = ['初一', '初二', '初三', '初四', '初五', '初六', '初七', '初八', '初九', '初十',
+  '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十',
+  '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '三十'];
+
+/** 该年闰几月（0 = 无闰月） */
+function leapMonth(year) {
+  return LUNAR_INFO[year - 1900] & 0xf;
+}
+
+/** 该年闰月天数 */
+function leapDays(year) {
+  if (leapMonth(year)) {
+    return (LUNAR_INFO[year - 1900] & 0x10000) ? 30 : 29;
+  }
+  return 0;
+}
+
+/** 某月是大月(30)还是小月(29) */
+function monthDays(year, month) {
+  return (LUNAR_INFO[year - 1900] & (0x10000 >> month)) ? 30 : 29;
+}
+
+/** 农历年总天数 */
+function lunarYearDays(year) {
+  let sum = 348; // 12 * 29
+  for (let i = 0x8000; i > 0x8; i >>= 1) {
+    sum += (LUNAR_INFO[year - 1900] & i) ? 1 : 0;
+  }
+  return sum + leapDays(year);
+}
+
+/**
+ * 公历 → 农历
+ * @param {Date} date
+ * @returns {{year:number, month:number, day:number, isLeap:boolean, ganZhiYear:string, zodiac:string, lunarMonth:string, lunarDay:string}}
+ */
+function solarToLunar(date) {
+  // 基准：1900-01-31 = 农历正月初一。
+  // 用 UTC 组件计算整天数差，避免本地/UTC 时区导致的 off-by-one。
+  const base = Date.UTC(1900, 0, 31);
+  const target = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+  let offset = Math.floor((target - base) / 86400000);
+  if (offset < 0 || offset > 73550) throw new Error('仅支持 1900-2100 年');
+
+  // 1) 逐年扣除
+  let year = 1900;
+  let temp = 0;
+  for (; year < 2100 && offset > 0; year++) {
+    temp = lunarYearDays(year);
+    offset -= temp;
+  }
+  if (offset < 0) { offset += temp; year--; }
+
+  // 2) 逐月扣除（含闰月）
+  const leap = leapMonth(year);
+  let isLeap = false;
+  let month = 1;
+  for (; month < 13 && offset > 0; month++) {
+    if (leap > 0 && month === leap + 1 && !isLeap) {
+      --month; isLeap = true; temp = leapDays(year);
+    } else {
+      temp = monthDays(year, month);
+    }
+    if (isLeap && month === leap + 1) { isLeap = false; }
+    offset -= temp;
+  }
+  if (offset === 0 && leap > 0 && month === leap + 1) {
+    if (isLeap) { isLeap = false; } else { isLeap = true; --month; }
+  }
+  if (offset < 0) { offset += temp; --month; }
+  const day = offset + 1;
+
+  // 3) 干支年 & 生肖（1900 年为庚子年）
+  const ganZhiIndex = (year - 1900 + 36) % 60;
+  const ganZhiYear = TIAN_GAN[ganZhiIndex % 10] + DI_ZHI[ganZhiIndex % 12];
+  const zodiac = ZODIAC[ganZhiIndex % 12];
+
+  return {
+    year, month, day, isLeap, ganZhiYear, zodiac,
+    lunarMonth: (isLeap ? '闰' : '') + MONTH_CN[month - 1] + '月',
+    lunarDay: DAY_CN[day - 1],
+  };
+}
+
+// 公历节日（固定月-日）
+const SOLAR_FESTIVALS = {
+  '1-1': '元旦', '2-14': '情人节', '3-8': '妇女节', '3-12': '植树节',
+  '4-1': '愚人节', '5-1': '劳动节', '5-4': '青年节', '6-1': '儿童节',
+  '7-1': '建党节', '8-1': '建军节', '9-10': '教师节', '10-1': '国庆节',
+  '12-24': '平安夜', '12-25': '圣诞节',
+};
+
+// 农历节日（闰月不匹配）
+const LUNAR_FESTIVALS = {
+  '1-1': '春节', '1-15': '元宵节', '2-2': '龙抬头',
+  '5-5': '端午节', '7-7': '七夕节', '7-15': '中元节',
+  '8-15': '中秋节', '9-9': '重阳节',
+  '12-8': '腊八节', '12-23': '小年',
+};
+
+// 24 节气名
+const SOLAR_TERMS = ['小寒', '大寒', '立春', '雨水', '惊蛰', '春分', '清明', '谷雨',
+  '立夏', '小满', '芒种', '夏至', '小暑', '大暑', '立秋', '处暑',
+  '白露', '秋分', '寒露', '霜降', '立冬', '小雪', '大雪', '冬至'];
+
+// 2026 年基准节气日期表（每月两个：月初节气、月中节气），±1 天宽松匹配
+const SOLAR_TERM_DATES_2026 = [
+  [5, 20], [4, 19], [5, 20], [5, 20], [5, 21], [5, 21],
+  [7, 23], [7, 23], [7, 23], [8, 23], [7, 22], [7, 22],
+];
+
+/** 取节气（近似查表法，覆盖常见场景） */
+function getSolarTerm(date) {
+  const month = date.getMonth();
+  const day = date.getDate();
+  const [firstDay, secondDay] = SOLAR_TERM_DATES_2026[month];
+  if (Math.abs(day - firstDay) <= 1) return SOLAR_TERMS[month * 2];
+  if (Math.abs(day - secondDay) <= 1) return SOLAR_TERMS[month * 2 + 1];
+  return null;
+}
+
+/**
+ * 节日 = 公历节日 + 农历节日 + 节气节日 + 除夕
+ * @param {Date} date
+ * @param {ReturnType<typeof solarToLunar>} lunar
+ * @returns {string[]}
+ */
+function getFestivals(date, lunar) {
+  const festivals = [];
+  const m = date.getMonth() + 1;
+  const d = date.getDate();
+
+  if (SOLAR_FESTIVALS[`${m}-${d}`]) festivals.push(SOLAR_FESTIVALS[`${m}-${d}`]);
+  if (!lunar.isLeap && LUNAR_FESTIVALS[`${lunar.month}-${lunar.day}`]) {
+    festivals.push(LUNAR_FESTIVALS[`${lunar.month}-${lunar.day}`]);
+  }
+  const term = getSolarTerm(date);
+  if (term === '清明') festivals.push('清明节');
+  if (term === '冬至') festivals.push('冬至');
+  if (lunar.month === 12 && lunar.day === monthDays(lunar.year, 12)) {
+    festivals.push('除夕');
+  }
+  return festivals;
+}
+
+/** 快捷：根据 Date 返回农历+节日聚合信息 */
+function getDayInfo(date) {
+  const lunar = solarToLunar(date);
+  return {
+    lunar,
+    festivals: getFestivals(date, lunar),
+    solarTerm: getSolarTerm(date),
+  };
+}
+
+
+// ============================================================
+// historicalevents.js — 历史热点事件 + Excel 下载链接
+// 键：YYYY-MM-DD（唯一）；每天最多 3 条热点
+// excelDownloadUrl：该日热点分析 Excel 的公网下载链接
+// 更新方式：定时任务执行后，把当日最新 3 条热点写到这里
+// ============================================================
+const HISTORICAL_EVENTS = [
+  {
+    id: 'ev-2026-08-27',
+    date: '2026-08-27',
+    excelDownloadUrl: 'https://aka.doubaocdn.com/s/whDB7omSUo',
+    hotEvents: [
+      { index: 1, title: '科创50半日大涨3.45%，算力硬件全线爆发（英伟达指引超预期）', type: 'historical' },
+      { index: 2, title: '大普微签5.15亿美元企业级PCIe SSD大单，20cm涨停', type: 'historical' },
+      { index: 3, title: '长鑫科技总市值破4万亿，存储芯片超级周期延续', type: 'historical' },
+    ],
+  },
+  {
+    id: 'ev-2026-08-26',
+    date: '2026-08-26',
+    excelDownloadUrl: 'https://aka.doubaocdn.com/s/example-20260826',
+    hotEvents: [
+      { index: 1, title: '有色金属全线回暖，铜、黄金方向领涨（江西铜业净利增106%）', type: 'historical' },
+      { index: 2, title: '券商板块走强，锦龙股份、湘财股份涨停', type: 'historical' },
+      { index: 3, title: '核电/核聚变概念活跃，中国核电等异动', type: 'historical' },
+    ],
+  },
+];
+
+// 转成 Map<date, event> 便于 O(1) 查找
+const historicalEventMap = new Map(
+  HISTORICAL_EVENTS.map((e) => [e.date, e])
+);
+
+
+// ============================================================
+// futureevents.js — 未来可公布的重大事件 / 科技大事
+// startDate/endDate：支持跨多天事件；单日事件 = 同一日期
+// isEstimated：true 时 UI 显示「预计/计划」标签
+// category: conference | policy | product | holiday | space | earnings
+// ============================================================
+const FUTURE_EVENTS = [
+  { id: 'f-2026-08-28', startDate: '2026-08-28', endDate: '2026-08-28', title: '智谱GLM-5.3开源发布', description: '国产旗舰大模型GLM-5.3将于8月28日10点开源', isEstimated: false, category: 'product' },
+  { id: 'f-2026-08-31', startDate: '2026-08-31', endDate: '2026-08-31', title: 'A股8月收官+中报披露截止', description: '上市公司半年报披露截止日，关注业绩兑现', isEstimated: false, category: 'policy' },
+  { id: 'f-2026-09-01', startDate: '2026-09-01', endDate: '2026-09-30', title: '9月PMI数据发布窗口', description: '关注制造业PMI与宏观数据对周期板块影响', isEstimated: true, category: 'policy' },
+  { id: 'f-2026-09-09', startDate: '2026-09-09', endDate: '2026-09-11', title: '国际消费电子展（IFA）柏林', description: '消费电子与AI终端新品密集发布期', isEstimated: true, category: 'conference' },
+  { id: 'f-2026-09-15', startDate: '2026-09-15', endDate: '2026-09-17', title: '苹果秋季新品发布会（预计）', description: '新一代iPhone及AI功能发布，消费电子链催化', isEstimated: true, category: 'product' },
+  { id: 'f-2026-09-21', startDate: '2026-09-21', endDate: '2026-09-24', title: '中秋国庆假期窗口（预计）', description: '关注假期消费数据与出行链', isEstimated: true, category: 'holiday' },
+  { id: 'f-2026-10-01', startDate: '2026-10-01', endDate: '2026-10-08', title: '国庆假期（法定节假日）', description: '10月1-8日国庆长假', isEstimated: false, category: 'holiday' },
+  { id: 'f-2026-10-28', startDate: '2026-10-28', endDate: '2026-10-31', title: '半导体行业会议（预计）', description: '关注存储/HBM/先进封装产业动态', isEstimated: true, category: 'conference' },
+  { id: 'f-2026-11-11', startDate: '2026-11-11', endDate: '2026-11-11', title: '双十一大促（电商旺季）', description: '消费/物流/直播电商题材催化', isEstimated: false, category: 'product' },
+  { id: 'f-2026-12-15', startDate: '2026-12-15', endDate: '2026-12-18', title: '中央经济工作会议（预计）', description: '年度经济定调，关注政策主线', isEstimated: true, category: 'policy' },
+  { id: 'f-2027-01-01', startDate: '2027-01-01', endDate: '2027-01-01', title: '元旦（法定节假日）', description: '2027年新年', isEstimated: false, category: 'holiday' },
+  { id: 'f-2027-02-01', startDate: '2027-02-01', endDate: '2027-02-15', title: '春节假期窗口（预计）', description: '春运+消费旺季，关注出行链', isEstimated: true, category: 'holiday' },
+];
+
+/** 判断某日期命中的未来事件 */
+function getFutureEventsForDate(date) {
+  const key = date.toISOString().slice(0, 10);
+  return FUTURE_EVENTS.filter((ev) => key >= ev.startDate && key <= ev.endDate);
+}
+
+
+// ============================================================
+// holidays.js — 法定节假日 / 调休上班
+// type: 'holiday' → 放假（红底「休」）；'workday' → 调休上班（橙底「班」）
+// ============================================================
+const HOLIDAYS = [
+  // 2026 中秋（示例）
+  { id: 'h-2026-09-25', date: '2026-09-25', name: '中秋节', type: 'holiday' },
+  { id: 'h-2026-09-26', date: '2026-09-26', name: '中秋节', type: 'holiday' },
+  { id: 'h-2026-09-27', date: '2026-09-27', name: '中秋节', type: 'holiday' },
+  // 2026 国庆
+  { id: 'h-2026-10-01', date: '2026-10-01', name: '国庆节', type: 'holiday' },
+  { id: 'h-2026-10-02', date: '2026-10-02', name: '国庆节', type: 'holiday' },
+  { id: 'h-2026-10-03', date: '2026-10-03', name: '国庆节', type: 'holiday' },
+  { id: 'h-2026-10-04', date: '2026-10-04', name: '国庆节', type: 'holiday' },
+  { id: 'h-2026-10-05', date: '2026-10-05', name: '国庆节', type: 'holiday' },
+  { id: 'h-2026-10-06', date: '2026-10-06', name: '国庆节', type: 'holiday' },
+  { id: 'h-2026-10-07', date: '2026-10-07', name: '国庆节', type: 'holiday' },
+  { id: 'h-2026-10-08', date: '2026-10-08', name: '国庆节', type: 'holiday' },
+  // 2026 春节（示例）
+  { id: 'h-2027-02-06', date: '2027-02-06', name: '春节', type: 'holiday' },
+  { id: 'h-2027-02-07', date: '2027-02-07', name: '春节', type: 'holiday' },
+  { id: 'h-2027-02-08', date: '2027-02-08', name: '春节', type: 'holiday' },
+  { id: 'h-2027-02-09', date: '2027-02-09', name: '春节', type: 'holiday' },
+  { id: 'h-2027-02-10', date: '2027-02-10', name: '春节', type: 'holiday' },
+  { id: 'h-2027-02-11', date: '2027-02-11', name: '春节', type: 'holiday' },
+  { id: 'h-2027-02-12', date: '2027-02-12', name: '春节', type: 'holiday' },
+];
+const holidayMap = new Map(HOLIDAYS.map((h) => [h.date, h]));
+
+
+// ============================================================
+// app.js — 日历主逻辑（普通脚本版，由 build.py 内联进 index.html）
+// 依赖：lunar.js / data/*.js 先于本文件加载（同一作用域）
+// ============================================================
+
+(function () {
+  'use strict';
+
+  var WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
+  var today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  var viewYear = today.getFullYear();
+  var viewMonth = today.getMonth(); // 0-based
+
+  function $(id) { return document.getElementById(id); }
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function fmtKey(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function isSameDay(a, b) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
+
+  function buildMonthMatrix(year, month) {
+    var firstDay = new Date(year, month, 1);
+    var startWeekday = firstDay.getDay();
+    var weeks = [];
+    for (var w = 0; w < 6; w++) {
+      var week = [];
+      for (var d = 0; d < 7; d++) {
+        var offset = w * 7 + d;
+        week.push(new Date(year, month, 1 - startWeekday + offset));
+      }
+      weeks.push(week);
+    }
+    return weeks;
+  }
+
+  function render() {
+    $('weekdayRow').innerHTML = WEEKDAYS.map(function (w) { return '<span>' + w + '</span>'; }).join('');
+    $('monthTitle').textContent = viewYear + '年' + (viewMonth + 1) + '月';
+
+    var hotCount = 0, holidayCount = 0;
+    var matrix = buildMonthMatrix(viewYear, viewMonth);
+    matrix.forEach(function (week) {
+      week.forEach(function (d) {
+        var key = fmtKey(d);
+        if (historicalEventMap.has(key) || getFutureEventsForDate(d).length > 0) hotCount++;
+        var h = holidayMap.get(key);
+        if (h && h.type === 'holiday') holidayCount++;
+      });
+    });
+    $('summary').textContent = '🔥 ' + hotCount + '天热点 · 🏖 ' + holidayCount + '天假期';
+
+    var html = '';
+    matrix.forEach(function (week) {
+      week.forEach(function (d) {
+        var key = fmtKey(d);
+        var dayInfo = getDayInfo(d);
+        var lunar = dayInfo.lunar;
+        var holiday = holidayMap.get(key);
+        var historical = historicalEventMap.get(key);
+        var future = getFutureEventsForDate(d);
+
+        var classes = ['day'];
+        if (d.getMonth() !== viewMonth) classes.push('other-month');
+        if (isSameDay(d, today)) classes.push('today');
+        if (holiday && holiday.type === 'holiday') classes.push('holiday-bg');
+
+        var badges = '';
+        if (holiday) badges += '<span class="badge ' + (holiday.type === 'holiday' ? 'holiday' : 'workday') + '">' + (holiday.type === 'holiday' ? '休' : '班') + '</span>';
+        if (historical || future.length) badges += '<span class="badge hot">热点</span>';
+
+        var festival = dayInfo.festivals[0] ? '<div class="festival">' + dayInfo.festivals[0] + '</div>' : '';
+        var hotTitle = historical
+          ? '<div class="hot-title">' + (historical.hotEvents[0] ? historical.hotEvents[0].title : '') + '</div>'
+          : (future[0] ? '<div class="hot-title">' + future[0].title + '</div>' : '');
+
+        html += '<div class="' + classes.join(' ') + '" data-date="' + key + '">' +
+          '<div class="num">' + d.getDate() + '</div>' +
+          '<div class="lunar">' + lunar.lunarDay + '</div>' +
+          '<div class="badges">' + badges + '</div>' +
+          festival +
+          hotTitle +
+          '</div>';
+      });
+    });
+    $('grid').innerHTML = html;
+
+    var days = document.querySelectorAll('.day');
+    for (var i = 0; i < days.length; i++) {
+      days[i].addEventListener('click', (function (el) {
+        return function () { openDrawer(new Date(el.getAttribute('data-date'))); };
+      })(days[i]));
+    }
+  }
+
+  function openDrawer(date) {
+    var key = fmtKey(date);
+    var dayInfo = getDayInfo(date);
+    var lunar = dayInfo.lunar;
+    var holiday = holidayMap.get(key);
+    var historical = historicalEventMap.get(key);
+    var future = getFutureEventsForDate(date);
+
+    $('drawerTitle').textContent = date.getFullYear() + '年' + (date.getMonth() + 1) + '月' + date.getDate() + '日 星期' + WEEKDAYS[date.getDay()];
+
+    var body = '';
+    body += '<div class="info-block"><div class="label">农历 · 节日</div><div class="content">' +
+      lunar.lunarMonth + lunar.lunarDay + ' · ' + lunar.ganZhiYear + '年 · 属' + lunar.zodiac +
+      (dayInfo.solarTerm ? '<span class="chip">' + dayInfo.solarTerm + '</span>' : '') +
+      dayInfo.festivals.map(function (f) { return '<span class="chip">' + f + '</span>'; }).join('') +
+      (holiday ? '<span class="chip ' + (holiday.type === 'workday' ? 'est' : '') + '">' + holiday.name + '（' + (holiday.type === 'holiday' ? '放假' : '调休上班') + '）</span>' : '') +
+      '</div></div>';
+
+    if (historical || future.length) {
+      body += '<div class="info-block"><div class="label">🔥 当日热点</div>';
+      if (historical) {
+        historical.hotEvents.forEach(function (e) {
+          body += '<div class="event-item"><span class="idx">' + e.index + '</span>' + e.title + '</div>';
+        });
+      }
+      future.slice(0, 3).forEach(function (e, i) {
+        body += '<div class="event-item"><span class="idx">' + (i + 1) + '</span>' + e.title + (e.description ? ' — ' + e.description : '') + (e.isEstimated ? ' <span class="chip est">预计</span>' : '') + '</div>';
+      });
+      body += '</div>';
+    }
+
+    body += '<div class="info-block"><div class="label">📊 Excel 分析报告</div>';
+    if (historical && historical.excelDownloadUrl) {
+      body += '<a class="download-btn" href="' + historical.excelDownloadUrl + '" target="_blank" rel="noreferrer">⬇ 下载 Excel 分析报告（' + key + '）</a>';
+    } else {
+      body += '<div class="placeholder">' + (key < fmtKey(today) ? '暂无历史数据' : '未来日期敬请期待') + '</div>';
+    }
+    body += '</div>';
+
+    $('drawerBody').innerHTML = body;
+    $('overlay').classList.add('show');
+    $('drawer').classList.add('show');
+  }
+
+  function closeDrawer() {
+    $('overlay').classList.remove('show');
+    $('drawer').classList.remove('show');
+  }
+
+  $('btnPrev').addEventListener('click', function () { viewMonth--; if (viewMonth < 0) { viewMonth = 11; viewYear--; } render(); });
+  $('btnNext').addEventListener('click', function () { viewMonth++; if (viewMonth > 11) { viewMonth = 0; viewYear++; } render(); });
+  $('btnToday').addEventListener('click', function () { viewYear = today.getFullYear(); viewMonth = today.getMonth(); render(); openDrawer(new Date(today)); });
+  $('drawerClose').addEventListener('click', closeDrawer);
+  $('overlay').addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowLeft') $('btnPrev').click();
+    if (e.key === 'ArrowRight') $('btnNext').click();
+    if (e.key === 'Escape') closeDrawer();
+  });
+
+  render();
+})();
+
+</script>
+</body>
+</html>
