@@ -35,7 +35,7 @@
 |---|---|
 | `SKILL.md` | AI Skill 定义：何时触发 + 工作流 + 硬约束 |
 | `prompts/` | 提示词模板与设计方法论（Prompt & GEO） |
-| `web/src/` | 前端模块源码：`lunar.js` 算法、`app.js` 主逻辑、`data/*.js` 数据 |
+| `web/src/` | 前端模块源码：`date-utils.js` 本地日期工具、`lunar.js` 算法、`app.js` 主逻辑、`data/*.js` 数据 |
 | `web/build.py` | 构建脚本：把 `src/` 模块拼装成自包含单文件 `index.html` |
 | `web/index.html` | 构建产物，零依赖，双击即用 |
 | `scripts/` | Python 数据处理：Excel 追加、上传发布、日历数据更新 |
@@ -74,7 +74,8 @@ python3 web/build.py
   title: '...',
   description: '...',
   isEstimated: false,        // true → UI 显示「预计」
-  category: 'conference'     // conference | policy | product | holiday | space | earnings
+  category: 'conference',    // conference | policy | product | holiday | space | earnings | commemoration
+  relatedSectors: ['军工']    // 可选：题材研究方向，不代表确定性利好
 }
 ```
 

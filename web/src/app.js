@@ -7,16 +7,17 @@
   'use strict';
 
   var WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
-  var today = new Date();
-  today.setHours(0, 0, 0, 0);
+  var today = getLocalToday();
 
   var viewYear = today.getFullYear();
   var viewMonth = today.getMonth(); // 0-based
+  var lastTodayKey;
 
   function $(id) { return document.getElementById(id); }
 
   function pad(n) { return String(n).padStart(2, '0'); }
   function fmtKey(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  lastTodayKey = fmtKey(today);
   function isSameDay(a, b) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
 
   function buildMonthMatrix(year, month) {
@@ -88,7 +89,7 @@
     var days = document.querySelectorAll('.day');
     for (var i = 0; i < days.length; i++) {
       days[i].addEventListener('click', (function (el) {
-        return function () { openDrawer(new Date(el.getAttribute('data-date'))); };
+        return function () { openDrawer(parseLocalDate(el.getAttribute('data-date'))); };
       })(days[i]));
     }
   }
@@ -119,7 +120,10 @@
         });
       }
       future.slice(0, 3).forEach(function (e, i) {
-        body += '<div class="event-item"><span class="idx">' + (i + 1) + '</span>' + e.title + (e.description ? ' — ' + e.description : '') + (e.isEstimated ? ' <span class="chip est">预计</span>' : '') + '</div>';
+        var sectors = e.relatedSectors && e.relatedSectors.length
+          ? '<div class="sector-hint">可能关注方向：' + e.relatedSectors.map(function (sector) { return '<span class="chip sector">' + sector + '</span>'; }).join('') + '</div>'
+          : '';
+        body += '<div class="event-item"><span class="idx">' + (i + 1) + '</span>' + e.title + (e.description ? ' — ' + e.description : '') + (e.isEstimated ? ' <span class="chip est">预计</span>' : '') + sectors + '</div>';
       });
       body += '</div>';
     }
@@ -137,6 +141,17 @@
     $('drawer').classList.add('show');
   }
 
+  function refreshToday() {
+    var nextToday = getLocalToday();
+    var nextKey = fmtKey(nextToday);
+    if (nextKey === lastTodayKey) return;
+    today = nextToday;
+    lastTodayKey = nextKey;
+    viewYear = today.getFullYear();
+    viewMonth = today.getMonth();
+    render();
+  }
+
   function closeDrawer() {
     $('overlay').classList.remove('show');
     $('drawer').classList.remove('show');
@@ -144,9 +159,11 @@
 
   $('btnPrev').addEventListener('click', function () { viewMonth--; if (viewMonth < 0) { viewMonth = 11; viewYear--; } render(); });
   $('btnNext').addEventListener('click', function () { viewMonth++; if (viewMonth > 11) { viewMonth = 0; viewYear++; } render(); });
-  $('btnToday').addEventListener('click', function () { viewYear = today.getFullYear(); viewMonth = today.getMonth(); render(); openDrawer(new Date(today)); });
+  $('btnToday').addEventListener('click', function () { today = getLocalToday(); viewYear = today.getFullYear(); viewMonth = today.getMonth(); render(); openDrawer(new Date(today)); });
   $('drawerClose').addEventListener('click', closeDrawer);
   $('overlay').addEventListener('click', closeDrawer);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) refreshToday(); });
+  window.addEventListener('focus', refreshToday);
   document.addEventListener('keydown', function (e) {
     if (e.key === 'ArrowLeft') $('btnPrev').click();
     if (e.key === 'ArrowRight') $('btnNext').click();

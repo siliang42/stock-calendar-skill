@@ -65,6 +65,8 @@ footer { text-align:center; font-size:12px; color:#b0b7c3; margin-top:10px; }
 .chip { display:inline-block; background:#eef1f7; color:var(--text); font-size:12px;
   padding:2px 8px; border-radius:12px; margin:2px 3px 2px 0; }
 .chip.est { background:#fef3e2; color:#b7791f; }
+.chip.sector { background:#e8f4fd; color:#1769aa; }
+.sector-hint { margin:5px 0 2px 24px; font-size:12px; color:var(--muted); }
 .event-item { padding:8px 0; border-bottom:1px dashed var(--border); font-size:13px; line-height:1.6; }
 .idx { display:inline-block; width:18px; height:18px; border-radius:50%; background:var(--red);
   color:#fff; text-align:center; font-size:11px; line-height:18px; margin-right:6px; }
@@ -114,6 +116,23 @@ footer { text-align:center; font-size:12px; color:#b0b7c3; margin-top:10px; }
 </div>
 
 <script>
+// date-utils.js — 统一使用浏览器本地时区处理日历日期
+function parseLocalDate(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) throw new Error(`Invalid calendar date: ${value}`);
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+}
+function getLocalToday() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
+}
+function formatLocalDate(date) {
+  const pad = (value) => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+
 // ============================================================
 // lunar.js — 农历/节气/节日 纯算法（零依赖，覆盖 1900-2100）
 // 核心：基准日偏移法，以 1900-01-31（农历庚子年正月初一）为基准
@@ -341,12 +360,22 @@ const historicalEventMap = new Map(
 
 
 // ============================================================
+
 // futureevents.js — 未来可公布的重大事件 / 科技大事
 // startDate/endDate：支持跨多天事件；单日事件 = 同一日期
 // isEstimated：true 时 UI 显示「预计/计划」标签
-// category: conference | policy | product | holiday | space | earnings
+// category: conference | policy | product | holiday | space | earnings | commemoration
 // ============================================================
 const FUTURE_EVENTS = [
+  { id: 'f-2026-09-03', startDate: '2026-09-03', endDate: '2026-09-03', title: '中国人民抗日战争暨世界反法西斯战争胜利纪念日', description: '纪念中国人民抗日战争暨世界反法西斯战争胜利，相关主题可能关注军工、国防装备、卫星导航与军用电子', relatedSectors: ['军工', '国防装备', '卫星导航', '军用电子'], isEstimated: false, category: 'commemoration' },
+  { id: 'f-2026-03-12', startDate: '2026-03-12', endDate: '2026-03-12', title: '中国植树节', description: '生态建设与国土绿化主题日，相关主题可能关注环保、园林与林业', relatedSectors: ['环保', '园林', '林业'], isEstimated: false, category: 'commemoration' },
+  { id: 'f-2026-03-22', startDate: '2026-03-22', endDate: '2026-03-22', title: '世界水日', description: '水资源保护主题日，相关主题可能关注水务、水处理与节水设备', relatedSectors: ['水务', '水处理', '节水设备'], isEstimated: false, category: 'commemoration' },
+  { id: 'f-2026-04-22', startDate: '2026-04-22', endDate: '2026-04-22', title: '世界地球日', description: '生态环境保护主题日，相关主题可能关注环保、固废处理与绿色能源', relatedSectors: ['环保', '固废处理', '绿色能源'], isEstimated: false, category: 'commemoration' },
+  { id: 'f-2026-04-24', startDate: '2026-04-24', endDate: '2026-04-24', title: '中国航天日', description: '中国航天事业主题日，相关主题可能关注卫星、商业航天与航天装备', relatedSectors: ['卫星', '商业航天', '航天装备'], isEstimated: false, category: 'commemoration' },
+  { id: 'f-2026-05-18', startDate: '2026-05-18', endDate: '2026-05-18', title: '国际博物馆日', description: '文化遗产与文博主题日，相关主题可能关注文旅、数字文化与博物馆服务', relatedSectors: ['文旅', '数字文化', '文博服务'], isEstimated: false, category: 'commemoration' },
+  { id: 'f-2026-06-05', startDate: '2026-06-05', endDate: '2026-06-05', title: '世界环境日', description: '生态环境保护主题日，相关主题可能关注环保、节能与绿色材料', relatedSectors: ['环保', '节能', '绿色材料'], isEstimated: false, category: 'commemoration' },
+  { id: 'f-2026-06-08', startDate: '2026-06-08', endDate: '2026-06-08', title: '世界海洋日', description: '海洋生态与资源保护主题日，相关主题可能关注海洋经济、海工装备与水产', relatedSectors: ['海洋经济', '海工装备', '水产'], isEstimated: false, category: 'commemoration' },
+  { id: 'f-2026-10-16', startDate: '2026-10-16', endDate: '2026-10-16', title: '世界粮食日', description: '粮食安全主题日，相关主题可能关注种业、农机与粮食加工', relatedSectors: ['种业', '农机', '粮食加工'], isEstimated: false, category: 'commemoration' },
   { id: 'f-2026-08-28', startDate: '2026-08-28', endDate: '2026-08-28', title: '智谱GLM-5.3开源发布', description: '国产旗舰大模型GLM-5.3将于8月28日10点开源', isEstimated: false, category: 'product' },
   { id: 'f-2026-08-31', startDate: '2026-08-31', endDate: '2026-08-31', title: 'A股8月收官+中报披露截止', description: '上市公司半年报披露截止日，关注业绩兑现', isEstimated: false, category: 'policy' },
   { id: 'f-2026-09-01', startDate: '2026-09-01', endDate: '2026-09-30', title: '9月PMI数据发布窗口', description: '关注制造业PMI与宏观数据对周期板块影响', isEstimated: true, category: 'policy' },
@@ -363,7 +392,7 @@ const FUTURE_EVENTS = [
 
 /** 判断某日期命中的未来事件 */
 function getFutureEventsForDate(date) {
-  const key = date.toISOString().slice(0, 10);
+  const key = formatLocalDate(date);
   return FUTURE_EVENTS.filter((ev) => key >= ev.startDate && key <= ev.endDate);
 }
 
@@ -407,16 +436,17 @@ const holidayMap = new Map(HOLIDAYS.map((h) => [h.date, h]));
   'use strict';
 
   var WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
-  var today = new Date();
-  today.setHours(0, 0, 0, 0);
+  var today = getLocalToday();
 
   var viewYear = today.getFullYear();
   var viewMonth = today.getMonth(); // 0-based
+  var lastTodayKey;
 
   function $(id) { return document.getElementById(id); }
 
   function pad(n) { return String(n).padStart(2, '0'); }
   function fmtKey(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  lastTodayKey = fmtKey(today);
   function isSameDay(a, b) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
 
   function buildMonthMatrix(year, month) {
@@ -488,7 +518,7 @@ const holidayMap = new Map(HOLIDAYS.map((h) => [h.date, h]));
     var days = document.querySelectorAll('.day');
     for (var i = 0; i < days.length; i++) {
       days[i].addEventListener('click', (function (el) {
-        return function () { openDrawer(new Date(el.getAttribute('data-date'))); };
+        return function () { openDrawer(parseLocalDate(el.getAttribute('data-date'))); };
       })(days[i]));
     }
   }
@@ -519,7 +549,10 @@ const holidayMap = new Map(HOLIDAYS.map((h) => [h.date, h]));
         });
       }
       future.slice(0, 3).forEach(function (e, i) {
-        body += '<div class="event-item"><span class="idx">' + (i + 1) + '</span>' + e.title + (e.description ? ' — ' + e.description : '') + (e.isEstimated ? ' <span class="chip est">预计</span>' : '') + '</div>';
+        var sectors = e.relatedSectors && e.relatedSectors.length
+          ? '<div class="sector-hint">可能关注方向：' + e.relatedSectors.map(function (sector) { return '<span class="chip sector">' + sector + '</span>'; }).join('') + '</div>'
+          : '';
+        body += '<div class="event-item"><span class="idx">' + (i + 1) + '</span>' + e.title + (e.description ? ' — ' + e.description : '') + (e.isEstimated ? ' <span class="chip est">预计</span>' : '') + sectors + '</div>';
       });
       body += '</div>';
     }
@@ -537,6 +570,17 @@ const holidayMap = new Map(HOLIDAYS.map((h) => [h.date, h]));
     $('drawer').classList.add('show');
   }
 
+  function refreshToday() {
+    var nextToday = getLocalToday();
+    var nextKey = fmtKey(nextToday);
+    if (nextKey === lastTodayKey) return;
+    today = nextToday;
+    lastTodayKey = nextKey;
+    viewYear = today.getFullYear();
+    viewMonth = today.getMonth();
+    render();
+  }
+
   function closeDrawer() {
     $('overlay').classList.remove('show');
     $('drawer').classList.remove('show');
@@ -544,9 +588,11 @@ const holidayMap = new Map(HOLIDAYS.map((h) => [h.date, h]));
 
   $('btnPrev').addEventListener('click', function () { viewMonth--; if (viewMonth < 0) { viewMonth = 11; viewYear--; } render(); });
   $('btnNext').addEventListener('click', function () { viewMonth++; if (viewMonth > 11) { viewMonth = 0; viewYear++; } render(); });
-  $('btnToday').addEventListener('click', function () { viewYear = today.getFullYear(); viewMonth = today.getMonth(); render(); openDrawer(new Date(today)); });
+  $('btnToday').addEventListener('click', function () { today = getLocalToday(); viewYear = today.getFullYear(); viewMonth = today.getMonth(); render(); openDrawer(new Date(today)); });
   $('drawerClose').addEventListener('click', closeDrawer);
   $('overlay').addEventListener('click', closeDrawer);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) refreshToday(); });
+  window.addEventListener('focus', refreshToday);
   document.addEventListener('keydown', function (e) {
     if (e.key === 'ArrowLeft') $('btnPrev').click();
     if (e.key === 'ArrowRight') $('btnNext').click();

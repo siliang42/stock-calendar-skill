@@ -89,11 +89,12 @@ stock-calendar-skill/
 │   ├── index.html                # 单文件应用入口（构建产物，双击即用）
 │   ├── build.py                  # 构建脚本：src → index.html
 │   └── src/
+│       ├── date-utils.js         # 本地时区日期解析与格式化
 │       ├── lunar.js              # 农历/节气/节日算法（核心资产）
 │       ├── app.js                # 日历主逻辑
 │       └── data/
 │           ├── historicalevents.js  # 历史热点 + Excel 链接
-│           ├── futureevents.js      # 未来重大事件
+│           ├── futureevents.js      # 未来重大事件 + 题材关联方向
 │           └── holidays.js          # 法定节假日/调休
 ├── scripts/
 │   ├── append_stock_analysis.py  # 热点分析写入 Excel

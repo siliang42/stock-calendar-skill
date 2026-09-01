@@ -78,6 +78,7 @@ excelDownloadUrl: 'reports/热点_股市联想_2026-08-27.xlsx',
   description: '事件说明及其公开来源摘要',
   isEstimated: false,
   category: 'conference',
+  relatedSectors: ['消费电子', 'AI终端'],
 }
 ```
 
@@ -86,7 +87,29 @@ excelDownloadUrl: 'reports/热点_股市联想_2026-08-27.xlsx',
 - 单日事件的 `startDate` 与 `endDate` 相同；
 - 跨日事件会在日期范围内的每一天显示；
 - 尚未正式确认的日期使用 `isEstimated: true`；
-- `category` 可用值为 `conference`、`policy`、`product`、`holiday`、`space`、`earnings`。
+- `category` 可用值为 `conference`、`policy`、`product`、`holiday`、`space`、`earnings`、`commemoration`。
+- `relatedSectors` 是可选的题材联想数组，页面会显示为“可能关注方向”；它只表示研究线索，不代表确定性利好或投资建议。
+
+## 纪念日与节日题材
+
+固定纪念日可以使用未来事件格式加入，并通过 `relatedSectors` 给出研究方向。例如 9 月 3 日：
+
+```js
+{
+  id: 'f-2026-09-03',
+  startDate: '2026-09-03',
+  endDate: '2026-09-03',
+  title: '中国人民抗日战争暨世界反法西斯战争胜利纪念日',
+  description: '相关主题可能关注军工、国防装备、卫星导航与军用电子',
+  relatedSectors: ['军工', '国防装备', '卫星导航', '军用电子'],
+  isEstimated: false,
+  category: 'commemoration',
+}
+```
+
+其他节日也可以按同一方式维护，例如植树节→环保/园林，世界水日→水务/节水，世界粮食日→种业/农业，世界航天日→卫星/商业航天，双十一→电商/物流/消费。日期事实应来自权威日历；板块仅作题材研究提示。
+
+日历首次打开时会读取浏览器本地日期并显示当月；页面跨午夜后重新获得焦点或从后台切回时，也会自动刷新“今天”的高亮和月份。
 
 ## 3. 更新法定节假日和调休
 

@@ -12,8 +12,8 @@
 | `scripts/append_stock_analysis.py` | 从 stdin 读取 JSON 数组，追加写入当日 Excel |
 | `scripts/publish_calendar_data.py` | 将浏览器可访问的下载地址和热点标题写入新的历史热点日期 |
 | `stock_hot_data/` | 运行时创建的 Excel 输出目录 |
-| `web/src/data/` | 历史热点、未来事件和节假日源码数据 |
-| `web/src/lunar.js` | 农历、节气和节日算法 |
+| `web/src/data/` | 历史热点、未来事件、节假日和题材关联源码数据 |
+| `web/src/lunar.js` | 农历、节气和固定节日算法 |
 | `web/src/app.js` | 日历交互和渲染逻辑 |
 | `web/build.py` | 将源码与数据内联到 `web/index.html` |
 | `web/index.html` | 可直接打开或部署的构建产物 |
@@ -104,6 +104,12 @@ python3 web/build.py
 - `web/src/app.js`。
 
 随后覆盖生成 `web/index.html`。它不压缩代码、不联网，也不校验事件内容真实性。
+
+未来事件可选字段 `relatedSectors` 是字符串数组，页面会在事件详情中显示“可能关注方向”。它是研究提示，不代表事件与板块之间存在确定因果关系。
+
+## 每次打开默认显示今天
+
+`web/index.html` 打开时会根据浏览器本地时间选择当前月份，并高亮当天；页面跨午夜后重新获得焦点或从后台切回时，会重新读取当天日期；点击“回到今天”也会刷新日期。日期字符串 `YYYY-MM-DD` 按本地日期解析，避免 UTC 时区转换导致点击日期偏移。
 
 ## 日期与时区
 

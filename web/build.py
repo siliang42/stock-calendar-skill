@@ -26,13 +26,14 @@ def read_global(path, transform=True):
 
 
 def build():
+    date_utils_js = read_global(os.path.join(SRC, "date-utils.js"))
     lunar_js = read_global(os.path.join(SRC, "lunar.js"))
     hist_js = read_global(os.path.join(SRC, "data", "historicalevents.js"))
     fut_js = read_global(os.path.join(SRC, "data", "futureevents.js"))
     hol_js = read_global(os.path.join(SRC, "data", "holidays.js"))
     app_js = read_global(os.path.join(SRC, "app.js"), transform=False)
 
-    script = "\n\n".join([lunar_js, hist_js, fut_js, hol_js, app_js])
+    script = "\n\n".join([date_utils_js, lunar_js, hist_js, fut_js, hol_js, app_js])
 
     html = f"""<!DOCTYPE html>
 <html lang="zh-CN">
@@ -101,6 +102,8 @@ footer {{ text-align:center; font-size:12px; color:#b0b7c3; margin-top:10px; }}
 .chip {{ display:inline-block; background:#eef1f7; color:var(--text); font-size:12px;
   padding:2px 8px; border-radius:12px; margin:2px 3px 2px 0; }}
 .chip.est {{ background:#fef3e2; color:#b7791f; }}
+.chip.sector {{ background:#e8f4fd; color:#1769aa; }}
+.sector-hint {{ margin:5px 0 2px 24px; font-size:12px; color:var(--muted); }}
 .event-item {{ padding:8px 0; border-bottom:1px dashed var(--border); font-size:13px; line-height:1.6; }}
 .idx {{ display:inline-block; width:18px; height:18px; border-radius:50%; background:var(--red);
   color:#fff; text-align:center; font-size:11px; line-height:18px; margin-right:6px; }}
